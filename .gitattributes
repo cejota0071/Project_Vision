@@ -1,0 +1,2 @@
+Triagem-Oftalmol-gica-api.rar filter=lfs diff=lfs merge=lfs -text
+experiments/greg_retina_output_v3/checkpoints/best_model.pt filter=lfs diff=lfs merge=lfs -text

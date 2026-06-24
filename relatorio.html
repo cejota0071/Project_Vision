@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GREG Retina — Gerar Relatório (PDF)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --white: #FAFAF8;
+      --off-white: #F2F0EC;
+      --stone: #E8E4DC;
+      --mid: #B0ABA0;
+      --text: #1A1916;
+      --text-light: #6B6760;
+      --teal: #1A5C6B;
+      --teal-dark: #0F3A45;
+      --teal-light: #E8F3F6;
+      --teal-mid: #4A8FA0;
+      --accent: #C8563A;
+      --warn: #D4883A;
+      --ok: #3A7A5C;
+      --border: #D8D4CC;
+      --shadow: 0 1px 3px rgba(26,25,22,.06), 0 4px 16px rgba(26,25,22,.08);
+      --radius: 12px;
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      padding: 2rem;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 600;
+      color: var(--teal-dark);
+    }
+    .sub {
+      color: var(--text-light);
+      margin-top: .35rem;
+      font-size: .95rem;
+    }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+    label {
+      display: block;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--mid);
+      margin-bottom: .5rem;
+      font-family: var(--font-mono);
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: .65rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      outline: none;
+      font-family: var(--font-mono);
+      font-size: .9rem;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+
+    .actions {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: .85rem 1.1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .15s, box-shadow .15s, background .15s;
+      font-family: var(--font-body);
+    }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 10px 30px rgba(26,92,107,.18); }
+    .btn-outline { background: transparent; color: var(--teal); border: 1.5px solid var(--teal); }
+    .btn-outline:hover { background: var(--teal-light); }
+
+    .status {
+      margin-top: 1rem;
+      padding: .85rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--off-white);
+      font-family: var(--font-mono);
+      font-size: .92rem;
+      color: var(--text-light);
+      min-height: 44px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 999;
+      background: var(--text);
+      color: #fff;
+      padding: .85rem 1.25rem;
+      border-radius: 8px;
+      font-size: .9rem;
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      transform: translateY(120%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      display: none;
+    }
+    .toast.show { display: block; transform: translateY(0); }
+    .toast.error { background: var(--accent); }
+    .muted { color: var(--text-light); font-size: .95rem; }
+
+    .small { font-size: .9rem; }
+    a { color: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Gerar Relatório (PDF)</h1>
+        <div class="sub">Gera um laudo PDF a partir de um <b>exame_id</b> e faz download automaticamente.</div>
+      </div>
+      <div class="small">
+        <a href="index.html">← Voltar ao Painel</a>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>API URL</label>
+          <input type="text" id="api-url" value="http://localhost:8000" />
+          <div class="muted" style="margin-top:.5rem;">A API deve responder `POST /laudos/{exame_id}` e `GET /laudos/{laudo_id}/download`.</div>
+        </div>
+        <div>
+          <label>Token JWT (opcional)</label>
+          <input type="text" id="jwt" placeholder="Se usar login/sessão no backend" />
+          <div class="muted" style="margin-top:.5rem;">Se você não usar auth, deixe em branco.</div>
+        </div>
+      </div>
+
+      <div style="height:1rem"></div>
+
+      <div class="grid">
+        <div>
+          <label for="exame-id">exame_id</label>
+          <input type="number" id="exame-id" placeholder="Ex: 12" />
+        </div>
+        <div>
+          <label for="titulo">Título (opcional)</label>
+          <input type="text" id="titulo" placeholder="Laudo de Triagem — Retinopatia Diabética" />
+        </div>
+      </div>
+
+
+      <div style="height:1rem"></div>
+
+      <div class="grid">
+        <div>
+          <label>observações</label>
+          <textarea id="observacoes" placeholder="Notas do médico..."></textarea>
+        </div>
+        <div>
+          <label>assinado_por (opcional)</label>
+          <input type="text" id="assinado_por" placeholder="Nome do médico" />
+          <div style="height:.7rem"></div>
+          <label>crm_assinante (opcional)</label>
+          <input type="text" id="crm" placeholder="CRM" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btn-gerar">Gerar e Baixar PDF</button>
+        <button class="btn-outline" id="btn-exemplo">Exemplo rápido</button>
+      </div>
+
+      <div class="status" id="status">Pronto. Informe o exame_id e clique em “Gerar e Baixar PDF”.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./painel_pdfs.js"></script>
+  <div style="margin:1rem 0; font-family:var(--font-mono); color:var(--text-light);" class="muted">
+    Último laudo ID: <span id="last-laudo-id">—</span>
+  </div>
+
+  <script>
+    const getApiUrl = () => document.getElementById('api-url').value.replace(/\/$/, '');
+    window.gregConfig = { apiUrl: getApiUrl() };
+
+    const toastEl = document.getElementById('toast');
+    function showToast(msg, type='') {
+      toastEl.textContent = msg;
+      toastEl.className = 'toast show' + (type ? ' ' + type : '');
+      setTimeout(() => toastEl.classList.remove('show'), 3500);
+    }
+
+    const statusEl = document.getElementById('status');
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    document.getElementById('api-url').addEventListener('change', () => {
+      window.gregConfig.apiUrl = getApiUrl();
+    });
+
+    function getToken() {
+      const t = document.getElementById('jwt').value.trim();
+      return t ? t : '';
+    }
+
+    document.getElementById('btn-exemplo').addEventListener('click', () => {
+      document.getElementById('exame-id').value = document.getElementById('exame-id').value || '1';
+      setStatus('Exemplo carregado. Clique em “Gerar e Baixar PDF”.');
+    });
+
+    document.getElementById('btn-gerar').addEventListener('click', async () => {
+      const exameId = document.getElementById('exame-id').value.trim();
+      if (!exameId) {
+        showToast('Informe o exame_id.', 'error');
+        return;
+      }
+
+      const token = getToken();
+      const body = {
+        titulo: document.getElementById('titulo').value.trim() || undefined,
+        observacoes: document.getElementById('observacoes').value.trim() || undefined,
+        assinado_por: document.getElementById('assinado_por').value.trim() || undefined,
+        crm_assinante: document.getElementById('crm').value.trim() || undefined,
+      };
+
+      try {
+        window.gregConfig.apiUrl = getApiUrl();
+        setStatus('Gerando PDF...');
+
+        const laudo = await window.gregPDF.emitirPDF(Number(exameId), token, body);
+        setStatus('PDF gerado. Iniciando download...');
+
+        // Persistir último laudo gerado para reutilizar no download
+        window.gregPDF._lastLaudoId = laudo.id;
+        localStorage.setItem('greg_last_laudo_id', String(laudo.id));
+        document.getElementById('last-laudo-id').textContent = String(laudo.id);
+
+        await window.gregPDF.baixarPDF(laudo.id, token);
+        setStatus('Download iniciado com sucesso.');
+
+      } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Falha ao gerar/baixar PDF', 'error');
+        setStatus('Falha: ' + (e.message || 'erro')); 
+      }
+    });
+  </script>
+</body>
+</html>
+

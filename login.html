@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GREG Retina — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --white:#FAFAF8; --off-white:#F2F0EC; --stone:#E8E4DC; --mid:#B0ABA0;
+      --text:#1A1916; --text-light:#6B6760; --teal:#1A5C6B; --teal-dark:#0F3A45;
+      --border:#D8D4CC; --shadow:0 1px 3px rgba(26,25,22,.06), 0 4px 16px rgba(26,25,22,.08);
+      --radius:12px; --font-display:'Cormorant Garamond', Georgia, serif; --font-body:'DM Sans', system-ui, sans-serif; --font-mono:'DM Mono', monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--white);color:var(--text);line-height:1.6;padding:2rem;overflow-x:hidden}
+    .wrap{max-width:820px;margin:0 auto}
+    header{margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border)}
+    h1{font-family:var(--font-display); font-size:2.2rem; font-weight:600; color:var(--teal-dark)}
+    .sub{color:var(--text-light); margin-top:.35rem}
+    .card{background:var(--white); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem;}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}}
+    label{display:block; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:var(--mid); margin-bottom:.5rem; font-family:var(--font-mono)}
+    input{width:100%; padding:.7rem .8rem; border:1px solid var(--border); border-radius:10px; background:#fff; outline:none; font-family:var(--font-mono)}
+    .actions{display:flex; gap:.75rem; flex-wrap:wrap; margin-top:1rem}
+    button{border:none; border-radius:10px; padding:.9rem 1.2rem; cursor:pointer; font-weight:600; font-family:var(--font-body); transition:transform .15s, box-shadow .15s, background .15s}
+    .btn-primary{background:var(--teal); color:#fff}
+    .btn-primary:hover{background:var(--teal-dark); transform:translateY(-1px); box-shadow:0 10px 30px rgba(26,92,107,.18)}
+    .btn-outline{background:transparent; color:var(--teal); border:1.5px solid var(--teal)}
+    .btn-outline:hover{background:rgba(26,92,107,.08)}
+    .status{margin-top:1rem; padding:.85rem 1rem; border-radius:10px; border:1px solid var(--border); background:var(--off-white); font-family:var(--font-mono); font-size:.92rem; color:var(--text-light); min-height:44px}
+    .toast{position:fixed; bottom:2rem; right:2rem; z-index:999; background:var(--text); color:#fff; padding:.85rem 1.25rem; border-radius:8px; font-size:.9rem; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,.2); transform:translateY(120%); transition:transform .3s cubic-bezier(.4,0,.2,1); display:none}
+    .toast.show{display:block; transform:translateY(0)}
+    .toast.error{background:#C8563A}
+    .muted{color:var(--text-light); font-size:.95rem}
+    a{color:var(--teal)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Login — GREG Retina</h1>
+      <div class="sub">Autenticação para acessar o painel de relatórios PDF.</div>
+    </header>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>API URL</label>
+          <input type="text" id="api-url" value="http://localhost:8000" />
+        </div>
+        <div>
+          <label>Ir para o Painel</label>
+          <div class="muted">Depois do login, redireciona automaticamente.</div>
+        </div>
+      </div>
+
+      <div style="height:1rem"></div>
+
+      <div class="grid">
+        <div>
+          <label>E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" />
+        </div>
+        <div>
+          <label>Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btn-login">Entrar</button>
+          <a class="btn-outline" style="display:inline-flex; align-items:center; text-decoration:none; padding:.9rem 1.2rem; border-radius:10px" href="/" title="Cancelar">Cancelar</a>
+
+      </div>
+
+      <div class="status" id="status">Informe suas credenciais e clique em “Entrar”.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const getApiUrl = () => document.getElementById('api-url').value.replace(/\/$/, '');
+    document.getElementById('api-url').addEventListener('change', () => { /* noop */ });
+
+    const toastEl = document.getElementById('toast');
+    function showToast(msg, type='') {
+      toastEl.textContent = msg;
+      toastEl.className = 'toast show' + (type ? ' ' + type : '');
+      setTimeout(() => toastEl.classList.remove('show'), 3500);
+    }
+
+    const statusEl = document.getElementById('status');
+    function setStatus(msg){ statusEl.textContent = msg; }
+
+    function setToken(token){ localStorage.setItem('greg_jwt', token); }
+    function getToken(){ return localStorage.getItem('greg_jwt') || ''; }
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      if(!email || !senha){ showToast('Informe e-mail e senha.', 'error'); return; }
+
+      try {
+        setStatus('Autenticando...');
+        const res = await fetch(`${getApiUrl()}/auth/login`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ email, senha })
+        });
+        if(!res.ok){
+          const err = await res.json().catch(()=>({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        setStatus('Login OK. Redirecionando...');
+        window.location.href = '/';
+      } catch(e){
+        console.error(e);
+        showToast(e.message || 'Falha no login', 'error');
+        setStatus('Falha no login: ' + (e.message || 'erro'));
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GREG Retinopatia — Triagem Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── DESIGN TOKENS ─────────────────────────────────── */
+    :root {
+      --white:       #FAFAF8;
+      --off-white:   #F2F0EC;
+      --stone:       #E8E4DC;
+      --mid:         #B0ABA0;
+      --text:        #1A1916;
+      --text-light:  #6B6760;
+      --teal:        #1A5C6B;
+      --teal-dark:   #0F3A45;
+      --teal-light:  #E8F3F6;
+      --teal-mid:    #4A8FA0;
+      --accent:      #C8563A;   /* risco alto */
+      --warn:        #D4883A;   /* risco moderado */
+      --ok:          #3A7A5C;   /* sem retinopatia */
+      --border:      #D8D4CC;
+      --shadow:      0 1px 3px rgba(26,25,22,.06), 0 4px 16px rgba(26,25,22,.08);
+      --radius:      12px;
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+
+    /* ── RESET ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: var(--font-body);
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── NAV ────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(1.5rem, 5vw, 4rem);
+      height: 64px;
+      background: rgba(250,250,248,.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--teal-dark);
+      letter-spacing: .01em;
+    }
+    .nav-logo span { color: var(--teal-mid); font-style: italic; }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      font-size: .85rem;
+      font-weight: 500;
+      color: var(--text-light);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--teal); }
+    .nav-status {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .78rem; color: var(--text-light);
+      font-family: var(--font-mono);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--mid);
+      transition: background .4s;
+    }
+    .status-dot.online  { background: var(--ok); box-shadow: 0 0 0 3px rgba(58,122,92,.18); }
+    .status-dot.offline { background: var(--accent); }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 64px clamp(1.5rem, 6vw, 5rem) 0;
+      gap: 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 70% at 70% 50%, rgba(26,92,107,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 10% 80%, rgba(26,92,107,.04) 0%, transparent 50%);
+    }
+    .hero-grid-lines {
+      position: absolute; inset: 0; z-index: 0; opacity: .4;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: .6rem;
+      font-size: .75rem; font-weight: 500; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 1.5rem;
+    }
+    .hero-eyebrow::before {
+      content: ''; width: 24px; height: 1px; background: var(--teal);
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 5vw, 4.2rem);
+      font-weight: 600;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+    }
+    h1 em { color: var(--teal); font-style: italic; }
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text-light);
+      max-width: 480px;
+      line-height: 1.75;
+      margin-bottom: 2.5rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .75rem 1.75rem;
+      border-radius: 6px;
+      font-size: .9rem; font-weight: 500;
+      cursor: pointer; border: none;
+      transition: all .2s;
+    }
+    .btn-primary {
+      background: var(--teal);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,92,107,.3); }
+    .btn-outline {
+      background: transparent;
+      color: var(--teal);
+      border: 1.5px solid var(--teal);
+    }
+    .btn-outline:hover { background: var(--teal-light); }
+
+    .hero-stats {
+      display: flex; gap: 2rem; margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .stat-item { display: flex; flex-direction: column; gap: .25rem; }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2rem; font-weight: 600;
+      color: var(--teal-dark);
+    }
+    .stat-label { font-size: .78rem; color: var(--text-light); letter-spacing: .04em; text-transform: uppercase; }
+
+    /* Hero visual / retina mockup */
+    .hero-visual {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .retina-ring {
+      width: min(420px, 90%);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      animation: ring-pulse 4s ease-in-out infinite;
+    }
+    @keyframes ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(26,92,107,.1); }
+      50% { box-shadow: 0 0 0 24px rgba(26,92,107,.04); }
+    }
+    .retina-ring::before {
+      content: '';
+      position: absolute; inset: 20px;
+      border-radius: 50%;
+      border: 1px dashed var(--stone);
+    }
+    .retina-inner {
+      width: 72%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%,
+        #c8683a 0%, #b85030 8%,
+        #8B3A2A 18%, #6B2820 30%,
+        #3A1A14 50%, #1A0C0A 70%, #0A0504 100%);
+      box-shadow:
+        inset 0 0 40px rgba(200,100,58,.3),
+        0 8px 40px rgba(10,5,4,.4);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Vaso sanguíneo SVG overlay */
+    .retina-vessels {
+      position: absolute; inset: 0; opacity: .6;
+    }
+    .retina-disc {
+      position: absolute;
+      width: 22%; aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, #e8c882 0%, #c8a050 60%, #a07030 100%);
+      top: 28%; left: 55%;
+      box-shadow: 0 0 16px rgba(232,200,130,.5);
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(26,92,107,.4), transparent);
+      animation: scan 3s ease-in-out infinite;
+      top: 0;
+    }
+    @keyframes scan { 0% { top: 0; opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    .retina-label {
+      position: absolute; bottom: -2rem;
+      width: 100%; text-align: center;
+      font-size: .72rem; font-family: var(--font-mono);
+      color: var(--mid); letter-spacing: .08em;
+    }
+
+    /* ── SECTION BASE ────────────────────────────────────── */
+    section { padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 6vw, 5rem); }
+    .section-tag {
+      font-size: .72rem; font-weight: 500; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 1rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .section-tag::after { content: ''; flex: 1; max-width: 40px; height: 1px; background: var(--teal); }
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 600; line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .section-lead {
+      font-size: 1rem; color: var(--text-light);
+      max-width: 560px; line-height: 1.75;
+      margin-bottom: 3rem;
+    }
+
+    /* ── INFERÊNCIA ─────────────────────────────────────── */
+    #infer { background: var(--off-white); }
+    .infer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--white);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      position: relative;
+      min-height: 300px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--teal-mid);
+      background: var(--teal-light);
+    }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .upload-icon {
+      width: 56px; height: 56px;
+      background: var(--teal-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .upload-icon svg { color: var(--teal); }
+    .upload-title { font-size: 1rem; font-weight: 500; }
+    .upload-sub { font-size: .82rem; color: var(--text-light); }
+
+    #preview-container {
+      display: none;
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+    }
+    #preview-img { width: 100%; height: 300px; object-fit: cover; opacity: .9; }
+    .preview-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.5) 0%, transparent 50%);
+    }
+    .preview-filename {
+      position: absolute; bottom: 1rem; left: 1rem;
+      font-size: .78rem; font-family: var(--font-mono);
+      color: rgba(255,255,255,.8);
+    }
+    .preview-change {
+      position: absolute; top: .75rem; right: .75rem;
+      background: rgba(0,0,0,.5); color: #fff;
+      border: none; border-radius: 4px;
+      padding: .35rem .75rem;
+      font-size: .75rem; cursor: pointer;
+      font-family: var(--font-body);
+      transition: background .2s;
+    }
+    .preview-change:hover { background: rgba(0,0,0,.75); }
+
+    .infer-controls {
+      margin-top: 1.25rem;
+      display: flex; gap: .75rem;
+    }
+    #btn-analyze {
+      flex: 1;
+      background: var(--teal);
+      color: #fff;
+      border: none; border-radius: 6px;
+      padding: .85rem;
+      font-size: .95rem; font-weight: 500;
+      cursor: pointer; font-family: var(--font-body);
+      transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    #btn-analyze:hover:not(:disabled) { background: var(--teal-dark); transform: translateY(-1px); }
+    #btn-analyze:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result panel */
+    .result-panel {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 300px;
+      display: flex; flex-direction: column;
+    }
+    .result-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .result-header-title {
+      font-size: .8rem; font-weight: 500; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-light);
+    }
+    .result-badge {
+      font-size: .72rem; font-family: var(--font-mono);
+      padding: .25rem .65rem; border-radius: 20px;
+      background: var(--stone); color: var(--text-light);
+    }
+    .result-body {
+      padding: 1.75rem 1.5rem;
+      flex: 1;
+      display: flex; flex-direction: column; gap: 1.5rem;
+    }
+
+    /* Empty state */
+    .result-empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex: 1; gap: 1rem; text-align: center;
+      color: var(--mid); padding: 2rem;
+    }
+    .result-empty svg { opacity: .3; }
+    .result-empty p { font-size: .88rem; }
+
+    /* Diagnosis card */
+    .diagnosis-card { display: none; }
+    .diag-class {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.25rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--mid);
+    }
+    .diag-class.risk-baixo  { border-color: var(--ok);     background: rgba(58,122,92,.06); }
+    .diag-class.risk-moderado { border-color: var(--warn);  background: rgba(212,136,58,.06); }
+    .diag-class.risk-alto   { border-color: var(--accent);  background: rgba(200,86,58,.06); }
+
+    .diag-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1.1rem;
+    }
+    .risk-baixo   .diag-icon { background: rgba(58,122,92,.15); }
+    .risk-moderado .diag-icon { background: rgba(212,136,58,.15); }
+    .risk-alto    .diag-icon { background: rgba(200,86,58,.15); }
+
+    .diag-text { flex: 1; }
+    .diag-label {
+      font-size: .72rem; font-weight: 500; letter-spacing: .08em;
+      text-transform: uppercase; margin-bottom: .25rem;
+    }
+    .risk-baixo   .diag-label { color: var(--ok); }
+    .risk-moderado .diag-label { color: var(--warn); }
+    .risk-alto    .diag-label { color: var(--accent); }
+
+    .diag-class-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem; font-weight: 600;
+      margin-bottom: .25rem;
+    }
+    .diag-conduct {
+      font-size: .83rem; color: var(--text-light); line-height: 1.5;
+    }
+
+    /* Prob bars */
+    .prob-section { display: flex; flex-direction: column; gap: .75rem; }
+    .prob-section-title {
+      font-size: .75rem; font-weight: 500; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-light);
+    }
+    .prob-bar-item { display: flex; flex-direction: column; gap: .3rem; }
+    .prob-bar-header {
+      display: flex; justify-content: space-between;
+      font-size: .78rem; color: var(--text-light);
+    }
+    .prob-bar-track {
+      height: 6px; background: var(--stone); border-radius: 3px; overflow: hidden;
+    }
+    .prob-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: var(--teal-mid);
+      width: 0%;
+      transition: width .7s cubic-bezier(.4,0,.2,1);
+    }
+    .prob-bar-fill.active { background: var(--teal); }
+
+    /* Meta */
+    .infer-meta {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: .5rem;
+    }
+    .meta-item { display: flex; flex-direction: column; gap: .2rem; }
+    .meta-label { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--mid); }
+    .meta-value { font-size: .8rem; font-family: var(--font-mono); color: var(--text-light); }
+
+    /* API URL config */
+    .api-config {
+      margin-top: 1rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .api-config label { font-size: .78rem; color: var(--text-light); white-space: nowrap; }
+    .api-config input {
+      flex: 1; padding: .5rem .75rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: .82rem; font-family: var(--font-mono);
+      background: var(--white); color: var(--text);
+      outline: none; transition: border-color .2s;
+    }
+    .api-config input:focus { border-color: var(--teal-mid); }
+
+    /* ── STATUS ─────────────────────────────────────────── */
+    #status-sec { border-top: 1px solid var(--border); }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+    .status-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: .75rem;
+    }
+    .status-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .status-card-label {
+      font-size: .72rem; font-weight: 500; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-light);
+    }
+    .status-chip {
+      font-size: .68rem; font-family: var(--font-mono);
+      padding: .2rem .6rem; border-radius: 20px;
+      background: var(--stone); color: var(--text-light);
+    }
+    .status-chip.ok  { background: rgba(58,122,92,.12); color: var(--ok); }
+    .status-chip.err { background: rgba(200,86,58,.12); color: var(--accent); }
+    .status-card-value {
+      font-family: var(--font-display);
+      font-size: 1.75rem; font-weight: 600;
+      color: var(--teal-dark);
+    }
+    .status-card-sub { font-size: .78rem; color: var(--mid); }
+
+    /* ── ABOUT / GREG ───────────────────────────────────── */
+    #about { background: var(--teal-dark); color: var(--white); }
+    #about .section-tag { color: var(--teal-mid); }
+    #about .section-tag::after { background: var(--teal-mid); }
+    #about h2 { color: #fff; }
+    #about .section-lead { color: rgba(255,255,255,.65); max-width: 100%; }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+    .arch-diagram {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius);
+      padding: 2rem;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      line-height: 2;
+      color: rgba(255,255,255,.7);
+    }
+    .arch-diagram .layer {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .35rem .75rem;
+      border-radius: 4px;
+      transition: background .2s;
+    }
+    .arch-diagram .layer:hover { background: rgba(255,255,255,.06); }
+    .arch-diagram .layer-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .arch-diagram .arrow {
+      padding-left: 1.5rem; opacity: .4; font-size: .7rem;
+    }
+    .col-teal { color: #7ECDE0; }
+    .col-gold  { color: #E8C882; }
+    .col-green { color: #7ABA9A; }
+    .col-red   { color: #E89078; }
+
+    .about-features {
+      display: flex; flex-direction: column; gap: 1.75rem;
+    }
+    .about-feature {
+      display: flex; gap: 1.25rem; align-items: flex-start;
+    }
+    .about-feature-icon {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.1rem;
+    }
+    .about-feature-text h4 {
+      font-size: .95rem; font-weight: 500; color: #fff;
+      margin-bottom: .35rem;
+    }
+    .about-feature-text p {
+      font-size: .83rem; color: rgba(255,255,255,.55); line-height: 1.65;
+    }
+
+    .greg-metrics {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: rgba(255,255,255,.1);
+      border-radius: 8px; overflow: hidden;
+      margin-top: 2.5rem;
+    }
+    .greg-metric {
+      background: rgba(255,255,255,.03);
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .greg-metric-val {
+      font-family: var(--font-display);
+      font-size: 1.8rem; font-weight: 600;
+      color: #7ECDE0;
+    }
+    .greg-metric-lbl {
+      font-size: .72rem; color: rgba(255,255,255,.45);
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-top: .25rem;
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer {
+      padding: 2.5rem clamp(1.5rem, 6vw, 5rem);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1.1rem; font-weight: 600;
+      color: var(--teal-dark);
+    }
+    .footer-copy {
+      font-size: .78rem; color: var(--mid);
+    }
+    .footer-links {
+      display: flex; gap: 1.5rem;
+    }
+    .footer-links a {
+      font-size: .78rem; color: var(--text-light);
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--teal); }
+
+    /* ── TOAST ──────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+      background: var(--text); color: #fff;
+      padding: .85rem 1.25rem; border-radius: 8px;
+      font-size: .85rem; max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      transform: translateY(120%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .toast.show { transform: translateY(0); }
+    .toast.error { background: var(--accent); }
+
+    /* ── SCROLL REVEAL ──────────────────────────────────── */
+    .reveal {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 900px) {
+      #hero { grid-template-columns: 1fr; padding-top: 80px; }
+      .hero-visual { display: none; }
+      .infer-grid { grid-template-columns: 1fr; }
+      .about-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .greg-metrics { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .hero-stats { flex-wrap: wrap; gap: 1.5rem; }
+      .infer-meta { grid-template-columns: 1fr 1fr; }
+      .greg-metrics { grid-template-columns: 1fr; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <div class="nav-logo">GREG <span>Retinopatia</span></div>
+    <div class="nav-links">
+      <a href="#infer">Triagem</a>
+      <a href="#status-sec">Status</a>
+      <a href="#about">Sobre</a>
+      <a id="relatorio-link" href="/relatorio.html">Relatório PDF</a>
+    </div>
+
+      <div class="nav-status">
+      <div class="status-dot" id="nav-dot"></div>
+      <span id="nav-status-text">verificando...</span>
+    </div>
+  </nav>
+
+  <!-- Enforce login for report page -->
+  <script>
+    (function(){
+      const jwt = localStorage.getItem('greg_jwt');
+      const rel = document.getElementById('relatorio-link');
+      if(rel) rel.addEventListener('click', function(e){
+        if(!jwt){
+          e.preventDefault();
+          window.location.href = '/login.html';
+        }
+      });
+    })();
+  </script>
+
+
+  <!-- ── HERO ── -->
+  <section id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid-lines"></div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">Triagem Oftalmológica com IA</div>
+      <h1>Retinopatia Diabética<br /><em>detectada</em> em segundos</h1>
+      <p class="hero-desc">
+        GREG Retina analisa imagens de fundo de olho usando uma rede neural
+        profunda treinada em milhares de casos clínicos, classificando
+        a severidade da retinopatia diabética com 92% de acurácia.
+      </p>
+      <div class="hero-actions">
+        <a href="#infer" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Iniciar Triagem
+        </a>
+        <a href="#about" class="btn btn-outline">Sobre o Modelo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-value">92%</span>
+          <span class="stat-label">Acurácia Val.</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">3</span>
+          <span class="stat-label">Classes de Risco</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">24M</span>
+          <span class="stat-label">Parâmetros</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">APTOS</span>
+          <span class="stat-label">Dataset 2019</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="retina-ring">
+        <div class="retina-inner">
+          <svg class="retina-vessels" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#8B2A1A" stroke-width="1.5" fill="none" opacity="0.8">
+              <path d="M100,100 Q120,80 140,60 Q155,45 165,35"/>
+              <path d="M100,100 Q80,115 60,130 Q45,142 35,150"/>
+              <path d="M100,100 Q125,110 145,125 Q158,135 168,145"/>
+              <path d="M100,100 Q75,85 55,70 Q42,60 32,52"/>
+              <path d="M100,100 Q110,75 118,55 Q124,40 128,28"/>
+              <path d="M100,100 Q90,125 82,145 Q76,160 72,172"/>
+            </g>
+            <g stroke="#6B1E10" stroke-width=".8" fill="none" opacity="0.5">
+              <path d="M140,60 Q152,55 158,48 Q163,42 166,36"/>
+              <path d="M60,130 Q50,138 43,145 Q38,150 35,155"/>
+              <path d="M118,55 Q122,44 124,34 Q126,26 126,18"/>
+              <path d="M82,145 Q78,158 76,168 Q74,176 73,182"/>
+            </g>
+          </svg>
+          <div class="retina-disc"></div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="retina-label">FUNDO DE OLHO — IMAGEM SIMULADA</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── INFERÊNCIA ── -->
+  <section id="infer">
+    <div class="section-tag reveal">Análise de Imagem</div>
+    <h2 class="reveal">Triagem <em style="font-style:italic;color:var(--teal)">inteligente</em></h2>
+    <p class="section-lead reveal">
+      Envie uma imagem de fundo de olho em formato JPEG ou PNG.
+      O modelo analisa e classifica a severidade da retinopatia em segundos.
+    </p>
+
+    <div class="infer-grid reveal">
+      <!-- Left: upload -->
+      <div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/jpeg,image/png" />
+          <div class="upload-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="upload-title">Arraste ou clique para enviar</div>
+          <div class="upload-sub">JPEG / PNG · máx. 10 MB</div>
+        </div>
+
+        <div id="preview-container">
+          <img id="preview-img" src="" alt="Pré-visualização" />
+          <div class="preview-overlay"></div>
+          <span class="preview-filename" id="preview-name"></span>
+          <button class="preview-change" id="btn-change">Trocar imagem</button>
+        </div>
+
+        <div class="infer-controls">
+          <button id="btn-analyze" disabled>
+            <div class="spinner" id="spinner"></div>
+            <svg id="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span id="btn-text">Analisar imagem</span>
+          </button>
+        </div>
+
+        <div class="api-config">
+          <label>API URL</label>
+          <input type="text" id="api-url" value="http://localhost:8000" placeholder="https://api.gregretinopatia.com.br" />
+        </div>
+      </div>
+
+      <!-- Right: result -->
+      <div class="result-panel">
+        <div class="result-header">
+          <span class="result-header-title">Resultado</span>
+          <span class="result-badge" id="result-epoch">—</span>
+        </div>
+        <div class="result-body">
+          <div class="result-empty" id="result-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <p>Envie uma imagem para ver<br />o diagnóstico aqui</p>
+          </div>
+
+          <div class="diagnosis-card" id="diagnosis-card">
+            <div class="diag-class" id="diag-class-card">
+              <div class="diag-icon" id="diag-icon">🔍</div>
+              <div class="diag-text">
+                <div class="diag-label" id="diag-risk-label">Risco</div>
+                <div class="diag-class-name" id="diag-class-name">—</div>
+                <div class="diag-conduct" id="diag-conduct">—</div>
+              </div>
+            </div>
+
+            <div class="prob-section">
+              <div class="prob-section-title">Probabilidades por classe</div>
+              <div class="prob-bar-item">
+                <div class="prob-bar-header">
+                  <span>Sem Retinopatia</span>
+                  <span id="prob-0">0%</span>
+                </div>
+                <div class="prob-bar-track"><div class="prob-bar-fill" id="bar-0"></div></div>
+              </div>
+              <div class="prob-bar-item">
+                <div class="prob-bar-header">
+                  <span>Leve / Moderada</span>
+                  <span id="prob-1">0%</span>
+                </div>
+                <div class="prob-bar-track"><div class="prob-bar-fill" id="bar-1"></div></div>
+              </div>
+              <div class="prob-bar-item">
+                <div class="prob-bar-header">
+                  <span>Grave / Proliferativa</span>
+                  <span id="prob-2">0%</span>
+                </div>
+                <div class="prob-bar-track"><div class="prob-bar-fill" id="bar-2"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="infer-meta" id="infer-meta" style="display:none">
+          <div class="meta-item">
+            <span class="meta-label">Confiança</span>
+            <span class="meta-value" id="meta-conf">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Tempo</span>
+            <span class="meta-value" id="meta-time">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Dispositivo</span>
+            <span class="meta-value" id="meta-device">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STATUS ── -->
+  <section id="status-sec">
+    <div class="section-tag reveal">Monitoramento</div>
+    <h2 class="reveal">Status da <em style="font-style:italic;color:var(--teal)">API</em></h2>
+    <p class="section-lead reveal">Estado em tempo real do servidor de inferência.</p>
+
+    <div class="status-grid reveal">
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Servidor</span>
+          <span class="status-chip" id="chip-server">—</span>
+        </div>
+        <div class="status-card-value" id="val-server">—</div>
+        <div class="status-card-sub">gregretinopatia.com.br</div>
+      </div>
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Modelo carregado</span>
+          <span class="status-chip" id="chip-model">—</span>
+        </div>
+        <div class="status-card-value" id="val-model">—</div>
+        <div class="status-card-sub">EfficientNet-B3 + CBAM</div>
+      </div>
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Época do modelo</span>
+          <span class="status-chip ok">checkpoint</span>
+        </div>
+        <div class="status-card-value" id="val-epoch">56</div>
+        <div class="status-card-sub">best_model.pt</div>
+      </div>
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Val. Accuracy</span>
+          <span class="status-chip ok">APTOS 2019</span>
+        </div>
+        <div class="status-card-value" id="val-acc">92.08%</div>
+        <div class="status-card-sub">3 classes · T=1.50</div>
+      </div>
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Dispositivo</span>
+          <span class="status-chip" id="chip-device">—</span>
+        </div>
+        <div class="status-card-value" id="val-device">—</div>
+        <div class="status-card-sub">inferência em tempo real</div>
+      </div>
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-label">Última verificação</span>
+          <span class="status-chip ok">auto</span>
+        </div>
+        <div class="status-card-value" id="val-lastcheck" style="font-size:1.1rem">—</div>
+        <div class="status-card-sub">atualiza a cada 30s</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ABOUT ── -->
+  <section id="about">
+    <div class="section-tag reveal">Sobre o Projeto</div>
+    <h2 class="reveal">GREG — <em style="font-style:italic">Guided Retinal Evaluation Guardian</em></h2>
+    <p class="section-lead reveal">
+      Sistema autônomo de triagem baseado em rede neural profunda com controle adaptativo
+      inspirado em teoria de controle PID. Desenvolvido para democratizar o acesso
+      ao diagnóstico precoce de retinopatia diabética em unidades básicas de saúde.
+    </p>
+
+    <div class="about-grid reveal">
+      <div>
+        <div class="arch-diagram">
+          <div class="layer"><span class="layer-dot" style="background:#7ECDE0"></span><span class="col-teal">INPUT</span>&nbsp;&nbsp;&nbsp;Imagem retinal (300×300 px)</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#7ABA9A"></span><span class="col-green">BACKBONE</span>&nbsp;&nbsp;EfficientNet-B3 (pré-treinado)</div>
+          <div class="arrow">↓ features [B, 1536, H, W]</div>
+          <div class="layer"><span class="layer-dot" style="background:#E8C882"></span><span class="col-gold">CBAM</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channel + Spatial Attention</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#7ECDE0"></span><span class="col-teal">POOL</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AdaptiveAvgPool → Flatten</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#7ABA9A"></span><span class="col-green">HEAD</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Linear(1536→512) → ReLU</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#7ABA9A"></span><span class="col-green">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>Dropout(0.3)</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#E89078"></span><span class="col-red">OUTPUT</span>&nbsp;&nbsp;&nbsp;Linear(512→3) → Softmax/T</div>
+          <div class="arrow">↓</div>
+          <div class="layer"><span class="layer-dot" style="background:#E8C882"></span><span class="col-gold">GREG δ</span>&nbsp;&nbsp;&nbsp;&nbsp;Controle adaptativo de LR</div>
+        </div>
+
+        <div class="greg-metrics">
+          <div class="greg-metric">
+            <div class="greg-metric-val">24M</div>
+            <div class="greg-metric-lbl">Parâmetros</div>
+          </div>
+          <div class="greg-metric">
+            <div class="greg-metric-val">1.50</div>
+            <div class="greg-metric-lbl">Temperature T</div>
+          </div>
+          <div class="greg-metric">
+            <div class="greg-metric-val">0</div>
+            <div class="greg-metric-lbl">Intervenções δ</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-features">
+        <div class="about-feature">
+          <div class="about-feature-icon">🧬</div>
+          <div class="about-feature-text">
+            <h4>CBAM — Atenção Dupla</h4>
+            <p>Mecanismo de atenção por canal e espaço que permite ao modelo focar nas regiões mais relevantes da retina — vasos sanguíneos, disco óptico e mácula.</p>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">⚙️</div>
+          <div class="about-feature-text">
+            <h4>Controle δ (GREG)</h4>
+            <p>Sistema PID-like que monitora a variação de acurácia a cada época e ajusta dinamicamente a taxa de aprendizado, prevenindo oscilações e colapso do treinamento.</p>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">🌡️</div>
+          <div class="about-feature-text">
+            <h4>Temperature Scaling</h4>
+            <p>Calibração probabilística com T=1.50 aplicada sobre os logits, corrigindo a tendência do modelo a ser overconfident e produzindo probabilidades mais realistas.</p>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">🏥</div>
+          <div class="about-feature-text">
+            <h4>Contexto Clínico</h4>
+            <p>Desenvolvido com foco nas Unidades Básicas de Saúde de Uberlândia — MG, em parceria com a UFU, como ferramenta de apoio ao diagnóstico precoce em atenção primária.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-logo">GREG Retinopatia</div>
+    <div class="footer-links">
+      <a href="#infer">Triagem</a>
+      <a href="#about">Sobre</a>
+    </div>
+    <div class="footer-copy">© 2026 · Uberlândia, MG · Uso exclusivo como apoio diagnóstico</div>
+  </footer>
+
+  <!-- ── TOAST ── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="./painel_pdfs.js"></script>
+
+  <script>
+    /* ─── CONFIG ─────────────────────────────────────── */
+    const getApiUrl = () => document.getElementById('api-url').value.replace(/\/$/, '');
+    window.gregConfig = { apiUrl: getApiUrl() };
+
+
+    /* ─── TOAST ─────────────────────────────────────── */
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (type ? ' ' + type : '');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /* ─── SCROLL REVEAL ──────────────────────────────── */
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    /* ─── UPLOAD ─────────────────────────────────────── */
+    const fileInput      = document.getElementById('file-input');
+    const uploadZone     = document.getElementById('upload-zone');
+    const previewContainer = document.getElementById('preview-container');
+    const previewImg     = document.getElementById('preview-img');
+    const previewName    = document.getElementById('preview-name');
+    const btnChange      = document.getElementById('btn-change');
+    const btnAnalyze     = document.getElementById('btn-analyze');
+
+    let selectedFile = null;
+
+    function showPreview(file) {
+      selectedFile = file;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewName.textContent = file.name;
+      uploadZone.style.display = 'none';
+      previewContainer.style.display = 'block';
+      btnAnalyze.disabled = false;
+    }
+
+    function resetUpload() {
+      selectedFile = null;
+      fileInput.value = '';
+      uploadZone.style.display = 'flex';
+      previewContainer.style.display = 'none';
+      btnAnalyze.disabled = true;
+    }
+
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) showPreview(e.target.files[0]);
+    });
+
+    btnChange.addEventListener('click', () => {
+      resetUpload();
+      resetResult();
+    });
+
+    // Drag & drop
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f && (f.type === 'image/jpeg' || f.type === 'image/png')) showPreview(f);
+      else showToast('Use apenas JPEG ou PNG.', 'error');
+    });
+
+    /* ─── RESET RESULT ───────────────────────────────── */
+    function resetResult() {
+      document.getElementById('result-empty').style.display = 'flex';
+      document.getElementById('diagnosis-card').style.display = 'none';
+      document.getElementById('infer-meta').style.display = 'none';
+      document.getElementById('result-epoch').textContent = '—';
+      [0,1,2].forEach(i => {
+        document.getElementById(`prob-${i}`).textContent = '0%';
+        document.getElementById(`bar-${i}`).style.width = '0%';
+        document.getElementById(`bar-${i}`).classList.remove('active');
+      });
+    }
+
+    /* ─── ANALYZE ────────────────────────────────────── */
+    const riskConfig = {
+      baixo:    { icon: '✅', label: 'RISCO BAIXO',     cls: 'risk-baixo' },
+      moderado: { icon: '⚠️', label: 'RISCO MODERADO',  cls: 'risk-moderado' },
+      alto:     { icon: '🚨', label: 'RISCO ALTO',      cls: 'risk-alto' },
+    };
+
+    btnAnalyze.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      const spinner   = document.getElementById('spinner');
+      const btnIcon   = document.getElementById('btn-icon');
+      const btnText   = document.getElementById('btn-text');
+
+      btnAnalyze.disabled = true;
+      spinner.style.display = 'block';
+      btnIcon.style.display = 'none';
+      btnText.textContent = 'Analisando...';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const res = await fetch(`${getApiUrl()}/predict`, { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Erro ${res.status}`);
+        }
+        const data = await res.json();
+        renderResult(data);
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'error');
+      } finally {
+        btnAnalyze.disabled = false;
+        spinner.style.display = 'none';
+        btnIcon.style.display = 'block';
+        btnText.textContent = 'Analisar novamente';
+      }
+    });
+
+    function renderResult(data) {
+      const risco  = data.classe_predita.risco;
+      const cfg    = riskConfig[risco] || riskConfig.baixo;
+      const classNames = ['Sem Retinopatia Diabética', 'Retinopatia Leve / Moderada', 'Retinopatia Grave / Proliferativa'];
+
+      // Card principal
+      const card = document.getElementById('diag-class-card');
+      card.className = 'diag-class ' + cfg.cls;
+      document.getElementById('diag-icon').textContent = cfg.icon;
+      document.getElementById('diag-risk-label').textContent = cfg.label;
+      document.getElementById('diag-class-name').textContent = data.classe_predita.descricao;
+      document.getElementById('diag-conduct').textContent = data.classe_predita.conduta;
+
+      // Probabilidades
+      const probs = data.probabilidades;
+      classNames.forEach((name, i) => {
+        const pct = probs[name] ?? 0;
+        document.getElementById(`prob-${i}`).textContent = pct.toFixed(1) + '%';
+        setTimeout(() => {
+          document.getElementById(`bar-${i}`).style.width = pct + '%';
+          if (i === data.classe_predita.codigo)
+            document.getElementById(`bar-${i}`).classList.add('active');
+        }, 80 + i * 120);
+      });
+
+      // Meta
+      document.getElementById('meta-conf').textContent   = data.confianca.toFixed(1) + '%';
+      document.getElementById('meta-time').textContent   = data.tempo_inferencia_ms.toFixed(0) + 'ms';
+      document.getElementById('meta-device').textContent = data.dispositivo;
+      document.getElementById('result-epoch').textContent = `ep${data.modelo_epoca} · ${data.modelo_val_acc}%`;
+
+      // Show
+      document.getElementById('result-empty').style.display = 'none';
+      document.getElementById('diagnosis-card').style.display = 'flex';
+      document.getElementById('diagnosis-card').style.flexDirection = 'column';
+      document.getElementById('diagnosis-card').style.gap = '1.5rem';
+      document.getElementById('infer-meta').style.display = 'grid';
+    }
+
+    /* ─── STATUS POLLING ─────────────────────────────── */
+    async function checkStatus() {
+      const dot  = document.getElementById('nav-dot');
+      const txt  = document.getElementById('nav-status-text');
+      const now  = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('val-lastcheck').textContent = now;
+
+      try {
+        const res = await fetch(`${getApiUrl()}/status`, { signal: AbortSignal.timeout(4000) });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        dot.className = 'status-dot online';
+        txt.textContent = 'online';
+
+        // Server card
+        document.getElementById('chip-server').className = 'status-chip ok';
+        document.getElementById('chip-server').textContent = 'online';
+        document.getElementById('val-server').textContent = 'Online';
+
+        // Model card
+        const loaded = data.modelo_carregado;
+        document.getElementById('chip-model').className = 'status-chip ' + (loaded ? 'ok' : 'err');
+        document.getElementById('chip-model').textContent = loaded ? 'carregado' : 'ausente';
+        document.getElementById('val-model').textContent = loaded ? 'Pronto' : 'Não carregado';
+
+        if (data.epoca)   document.getElementById('val-epoch').textContent = data.epoca;
+        if (data.val_acc) document.getElementById('val-acc').textContent   = (data.val_acc * 100).toFixed(2) + '%';
+
+        // Device
+        const dev = data.dispositivo || '—';
+        document.getElementById('chip-device').className = 'status-chip ok';
+        document.getElementById('chip-device').textContent = dev.includes('cuda') ? 'GPU' : 'CPU';
+        document.getElementById('val-device').textContent = dev.toUpperCase();
+
+      } catch {
+        dot.className = 'status-dot offline';
+        txt.textContent = 'offline';
+        document.getElementById('chip-server').className = 'status-chip err';
+        document.getElementById('chip-server').textContent = 'offline';
+        document.getElementById('val-server').textContent = 'Offline';
+        document.getElementById('chip-model').className = 'status-chip';
+        document.getElementById('chip-model').textContent = '—';
+        document.getElementById('val-model').textContent = '—';
+        document.getElementById('chip-device').className = 'status-chip';
+        document.getElementById('chip-device').textContent = '—';
+        document.getElementById('val-device').textContent = '—';
+      }
+    }
+
+    // Checa ao abrir e a cada 30s
+    checkStatus();
+    setInterval(checkStatus, 30000);
+
+    // Recheca ao mudar URL da API
+    document.getElementById('api-url').addEventListener('change', checkStatus);
+  </script>
+</body>
+</html>
